@@ -5,7 +5,7 @@ Spring FW is used for building enterprise Java apps. Core features:
 - Aspect-Oriented Programming: allows the separation of cross-cutting concerns from business logic. 
 - Inversion of Control: when spring is doing dependency injection on our behalf. There are two options : via bean.xml and via annotations
 
-**bean.xml**
+# bean.xml
 Spring maintains a container ( also called ApplicationContext/BeanFactory). When you run the program, Spring would check for bean.xml for which classes you specify to create a bean and create that bean inside the container. At anytime, when you use .getBean(bean_name) method, Spring will fetch the bean created in its container and provides to you
 ```java
 Student st = (Student).getBean(Student);
@@ -115,7 +115,9 @@ This is useful for performing any custom initialization logic that the bean requ
 Result: 
 
 ![alt text](SS/image.png)
-**Annotations**: @Component, @Autowired to manages the beans. When we create object, we create an instance of a class with "new" keyword. Bean is actually an instance of a class but created by Spring ( internally Spring also uses "new" keyword)
+# Annotations: 
+
+@Component, @Autowired to manages the beans. When we create object, we create an instance of a class with "new" keyword. Bean is actually an instance of a class but created by Spring ( internally Spring also uses "new" keyword)
 
 To use annotation we are going through these steps: 
 1. Create beans and annotated with @Component
@@ -165,7 +167,9 @@ NotificationService service = (NotificationService) appContext.getBean("notifica
 ```
 
 When we run above code, the constructor of NotificationService is evoked leads to SMSGW constructor evoked and @Autowired annotation is used to attach these two bean ( just like how ref argument do in factoryBean.xml). @Autowired annotation is used when we want to store component of 1 class in an other class. In this case, NotificationService requires reference of SMSGateway.
+
 **How spring knows which ref that notificationService needs?**
+
 Lets say apart from SMSGateway, we also have EmailGateway autowired to NotificationService. 
 In this case, spring checks the type of attributes then use the bean for that particular type
 Above code we use Field injection, howevery constructor injection is prefered because 
@@ -175,6 +179,7 @@ Above code we use Field injection, howevery constructor injection is prefered be
 - Reduce the risk of 'NullPointerException' since constructor ensures all required dependencies are provided
 
 **Another way to inject dependency: Setter injection**
+
 ```java
 @Autowired
 public void setSMSGateWay(SMSGateway smsGw){
@@ -183,6 +188,8 @@ public void setSMSGateWay(SMSGateway smsGw){
 ```
 NotificationService is also created first in this case like field injection
 
-**applicationContext.close()**: whatever bean you have inside the container will be destroyed together with the container itself
+**applicationContext.close()**: 
+
+whatever bean you have inside the container will be destroyed together with the container itself
 
 Before the container is destroyed, we can specify a method to be executed before it happens by adding **destroy-method** = "methodName". This is useful for performing any cleanup operations that the bean requires.
