@@ -182,3 +182,7 @@ public void setSMSGateWay(SMSGateway smsGw){
 }
 ```
 NotificationService is also created first in this case like field injection
+
+**applicationContext.close()**: whatever bean you have inside the container will be destroyed together with the container itself
+
+Before the container is destroyed, we can specify a method to be executed before it happens by adding **destroy-method** = "methodName". This is useful for performing any cleanup operations that the bean requires.
