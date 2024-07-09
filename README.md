@@ -427,4 +427,101 @@ return ps.executeUpdate();
 However, we still need to follow the correct order of insertion and index it accordingly. 
 
 **JDBC TEMPLATE**
-Using Connection class requires manually handle DriverManager. Spring framework provide JDBC templates to simplify DB operations. Hence, we no longer need a bean of Connection class. In repository, the code is re-written: 
+
+- Using Connection class requires manually handle DriverManager. Spring framework provide JDBC templates to simplify DB operations. Hence, we no longer need a bean of Connection class. In repository, the code is re-written: 
+
+```java
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+
+import com.demo.SpringJDBC.Model.Person;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Repository
+@Slf4j
+public class PersonRepositorySpringJDBC implements IPersonRepository {
+
+	JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	PersonRepositorySpringJDBC(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
+
+	@Override
+	public List<Person> getPersons() {
+
+		List<Person> personList = jdbcTemplate.query("select * from person", new RowMapper<Person>() {
+
+			@Override
+			public Person mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return new Person(rs.getString("name"), rs.getInt("id"));
+			}
+		});
+		return personList;
+
+	}
+```
+- Previously, we need to initiate an empty personList, then extract data from DB and assign it to a ResultSet, then iterate through each line in ResultSet using while loop to create a new Person object. JDBC Templates returns type is a list, hence we dont need to intiate an empty list. It takes 2 parameters: the sql query, and instance of RowMapper functional interface where you can override mapRow() method to return Person object. 
+
+Shorter version with lambda expression: 
+```java
+@Override
+	public List<Person> getPersons() {
+
+		List<Person> personList = jdbcTemplate.query("select * from person", (rs,rowNum)-> new Person(rs.getString("name"), rs.getInt("id")
+
+		));
+		return personList;
+
+	}
+```
+Note: we have to make sure that mapping order is correct which is the same issue we met with PreparedStatement. In order to remove that particular issue, we use a child class of JDBC Template: NamedParameterJdbcTemplate
+
+```java
+@Override
+	public Integer createPerson(Person person) {
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue("name", person.getName());
+		parameterSource.addValue("id", person.getId());
+		
+		return jdbcTemplate.update("insert into person(name,id) values(:name,:id)",parameterSource );
+
+	}
+```
+# @Qualifier annotation
+
+Lets say we have two implementations of PersonRepository, one using Connection and the other using JDBC Template, both implements IPersonRepository interface. In order to let Spring know which version to use, we use @Qualifier annotation. This annotation is used whenever there is a conflict of which bean to be used. We can add name to @Bean("dataS") and use it in @Qualifier as well. 
+
+```java
+@Service
+public class PersonService {
+	
+	IPersonRepository ipersonRepository;
+	
+	@Autowired
+	PersonService(@Qualifier("personRepositoryJDBC")IPersonRepository iPersonRepository){
+		this.ipersonRepository = iPersonRepository;
+	}
+	
+	public List<Person> getPersons() throws SQLException{
+		return ipersonRepository.getPersons();
+	}
+```
+Note about default naming convention as argument of @Qualifier: 
+- If first 2 letters are consecutively uppercase, the class name remains the same 
+- If only first letter is uppercase, we will write it as lowercase
+
+# Spring Boot
+
+If we use Spring Boot, there are few differences: 
+1. Spring boot dependency: spring-boot-starter-jdbc 
+2. Instead of specifying DataSource bean in DBBean class, we now use application.properties configuration. Spring Boot will auto create a bean of the DataSource
+3. Update and execute Query becomes much simpler: previously we write lots of boilerplate code for queries to map the data returned from SQL to JAVA POJOs. This now will be handled by Object Relational Mapping (ORM). Object means Java POJOs, Relational means Relational model. 
