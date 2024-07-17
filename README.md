@@ -299,6 +299,11 @@ public class Person {
 ```
 2. Create database in mysql named JDBC_demo
 3. Now we need to connect java code to the database we just created. This will be handled by PersonRepository class. Here it is annotated with @Repository and includes methods to extract data from JDBC_demo database, or create table if not exist. Each method in PersonRepository requires an instance of Connection class and we dont want to call it everytime we write a method in Repository. Hence, we create a separate class to define the bean of Connection class. An instance of connection will further require an instance of DataSource class for it to function. 
+
+OPTION 1: specify URL, password, username directly within DriverManager.getConnection()
+
+OPTION2: specify URL, password, username in a separate dataSource bean and dont need to specify those in Driver.getConnection
+
 ```java
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -312,6 +317,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 @Configuration
 public class DBBean {
+// OPTION 1: 
 	@Bean
 	public Connection connection() {
 		Connection connection = null;
@@ -324,7 +330,23 @@ public class DBBean {
 		}
 		return connection;
 	}
-	
+	/*
+	OPTION 2: 
+	 instead of DriverManager.getConnection("jdbc:mysql://localhost:3306/JDBC_demo","root","root"). We have: 
+
+	 @Bean
+	public Connection connection() {
+		Connection connection = null;
+		
+		try {
+			connection = DriverManager.getConnection()
+			} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return connection;
+	}
+
 	@Bean
 	public DataSource dataSource() {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
@@ -333,7 +355,7 @@ public class DBBean {
 		dataSource.setPassword("root");
 		return dataSource;
 	}	
-	
+	*/
 }
 ```
 @Bean is method level annotation, different to class annotations such as @Controller, @Service, @Repository or @Component. Hence, we need @Configuration annotation to mark the class and notify Spring to scan this bean at runtime. 
@@ -468,6 +490,35 @@ public class PersonRepositorySpringJDBC implements IPersonRepository {
 		return personList;
 
 	}
+```
+- With Jdbc Template we need to config a DataSource bean: 
+
+```java
+@Configuration
+public class DataSourceConfig {
+
+    @Bean
+    public DataSource dataSource() {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        dataSource.setUrl("jdbc:mysql://localhost:3306/JDBC_demo");
+        dataSource.setUsername("root");
+        dataSource.setPassword("root");
+        return dataSource;
+    }
+}
+```
+- Next, configure a JdbcTemplate bean using the DataSource:
+
+```java
+@Configuration
+public class JdbcTemplateConfig {
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+}
 ```
 - Previously, we need to initiate an empty personList, then extract data from DB and assign it to a ResultSet, then iterate through each line in ResultSet using while loop to create a new Person object. JDBC Templates returns type is a list, hence we dont need to intiate an empty list. It takes 2 parameters: the sql query, and instance of RowMapper functional interface where you can override mapRow() method to return Person object. 
 
